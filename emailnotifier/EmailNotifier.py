@@ -34,7 +34,7 @@ class EmailNotify:
                               'osama.jamil@slashnext.com']
         else:
             self.recipient = recipient
-        if not self.credentials['username'] in self.recipient:
+        if not self.credentials['username'] in self.recipient and 'no-reply' not in self.credentials['username']:
             self.recipient.insert(0, self.credentials['username'])
 
     def send_email(self, header, body):
