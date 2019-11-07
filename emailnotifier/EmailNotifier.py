@@ -8,11 +8,12 @@ import smtplib
 import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import re
 
 
 class EmailNotify:
 
-    def __init__(self, host, port,credentials_folder_name='.creds', credential_file='email.ini', recipient=None):
+    def __init__(self, host, port, recipients: list, credentials_folder_name='.creds', credential_file='email.ini'):
         self.credential_file_path = os.path.join(credentials_folder_name, credential_file)
         if not os.path.isfile(self.credential_file_path):
             self.create_credentials()
@@ -29,11 +30,8 @@ class EmailNotify:
             logging.error('Failed to login with the given credentials')
             os.remove(self.credential_file_path)
 
-        if recipient is None:  # Senders were not set by the user. Resetting to default
-            self.recipient = ['fakhir.khan.4528@slashnext.com', 'aqib.mumtaz.1154@slashnext.com',
-                              'osama.jamil@slashnext.com']
-        else:
-            self.recipient = recipient
+        self.recipient = recipients
+        self.check_email_addresses()  # this will update the self.recipient variable
         if not self.credentials['username'] in self.recipient and 'no-reply' not in self.credentials['username']:
             self.recipient.insert(0, self.credentials['username'])
 
@@ -88,15 +86,14 @@ class EmailNotify:
     def set_senders(self, senders_list):
         self.recipient = senders_list
 
-    # def __del__(self):
-    #     self.close_server()
-
-
-def main():
-    mail_server = EmailNotify(recipient=['fakhir.khan.4528@slashnext.com', 'arsalan.ahmad.3045@slashnext.com'])
-    mail_server.send_email(header='Vision Classifier Training Stats', body='Test Email')
-    mail_server.close_server()
-
-
-if __name__ == '__main__':
-    main()
+    def check_email_addresses(self):
+        regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+        valid_email_addresses = list()
+        for recipient in self.recipient:
+            if re.search(regex, recipient):
+                valid_email_addresses.append(recipient)
+            else:
+                logging.warning('Provided recipient is not valid: {}. Removing those from the list'.format(recipient))
+        assert len(valid_email_addresses) > 0, 'No Valid Email Addresses left after running the checks. Please check ' \
+                                               'recipients and run again '
+        self.recipient = valid_email_addresses
